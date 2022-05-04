@@ -9,6 +9,9 @@
     "test": "jest --watch"
   },
   "dependencies": {
+    "@apollo/client": "^3.6.2",
+    "graphql": "^16.4.0",
+    "jsutils": "^1.10.1",
     "next": "9.5.0",
     "react": "16.13.1",
     "react-dom": "16.13.1",

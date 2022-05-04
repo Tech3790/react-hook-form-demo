@@ -1,23 +1,20 @@
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import ReCAPTCHA from "react-google-recaptcha";
+import { ApolloClient, InMemoryCache, gql } from "@apollo/client";
 
 interface FormData {
-  name: string;
   email: string;
   password: string;
-  terms: boolean;
 }
 
+const client = new ApolloClient({
+  uri: 'http://localhost:8080/graphql',
+  cache: new InMemoryCache()
+});
+
 export default function Home() {
-  const { register, handleSubmit, errors } = useForm<FormData>({
-    defaultValues: {
-      name: "Leigh",
-      email: "email@email.com",
-      password: "P@ssw0rd!",
-      terms: true,
-    },
-  });
+  const { register, handleSubmit, errors } = useForm<FormData>()
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [serverErrors, setServerErrors] = useState<Array<string>>([]);
   const reRef = useRef<ReCAPTCHA>();
@@ -29,34 +26,34 @@ export default function Home() {
         setServerErrors([]);
 
         const token = await reRef.current.executeAsync();
-        reRef.current.reset();
 
-        const response = await fetch("/api/auth", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            email: formData.email,
-            password: formData.password,
-            terms: formData.terms,
-            token,
-          }),
-        });
-        const data = await response.json();
-
-        if (data.errors) {
-          setServerErrors(data.errors);
-        } else {
-          console.log("success, redirect to home page");
+        const signIn = (email: String, password: String) => {
+          client
+          .query({
+            query: gql`
+              query SignInUser {
+                signInUser(username: "${email}", password: "${password}", captchaResponseToken: "${token}") {
+                  accessToken,
+                  userId
+                }
+              }
+            `
+          })
+          .then(result => console.log("result is: " + JSON.stringify(result)))
+          .catch(e => {
+            console.log(e);
+          })
         }
 
+        reRef.current.reset();
+      
+        signIn(formData.email, formData.password)
         setSubmitting(false);
       })}
     >
+      {/* token needs to be here  */}
       <ReCAPTCHA
-        sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY}
+        sitekey={""}
         size="invisible"
         ref={reRef}
       />
@@ -68,17 +65,6 @@ export default function Home() {
           ))}
         </ul>
       )}
-
-      <div>
-        <label htmlFor="name">Name</label>
-        <input
-          type="text"
-          name="name"
-          id="name"
-          ref={register({ required: "required" })}
-        />
-        {errors.name ? <div>{errors.name.message}</div> : null}
-      </div>
 
       <div>
         <label htmlFor="email">Email</label>
@@ -114,21 +100,9 @@ export default function Home() {
         />
         {errors.password ? <div>{errors.password.message}</div> : null}
       </div>
-
-      <div>
-        <label htmlFor="terms">You must agree to our terms.</label>
-        <input
-          type="checkbox"
-          name="terms"
-          id="terms"
-          ref={register({ required: "you must agree to terms" })}
-        />
-        {errors.terms ? <div>{errors.terms.message}</div> : null}
-      </div>
-
       <div>
         <button type="submit" disabled={submitting}>
-          Register
+          SignIn
         </button>
       </div>
     </form>

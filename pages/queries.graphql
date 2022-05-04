@@ -1,0 +1,10 @@
+query signInUser($username: String, $password: String) {
+  signInUser(username: $username, password: $password) {
+    accessToken
+    walletType
+    roles {
+      id
+      name
+    }
+  }
+}
